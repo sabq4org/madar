@@ -1,22 +1,19 @@
 import { spawn } from 'node:child_process';
+import { resolve } from 'node:path';
 import { config } from './config.js';
 
 const env = config();
 const commands = [
   ['--import', 'tsx', 'apps/api/src/index.ts'],
   ['--import', 'tsx', 'apps/worker/src/index.ts'],
-  [
-    'apps/web/node_modules/next/dist/bin/next',
-    'dev',
-    'apps/web',
-    '-p',
-    String(env.WEB_PORT),
-    '--hostname',
-    env.HOST,
-  ],
+  ['node_modules/next/dist/bin/next', 'dev', '-p', String(env.WEB_PORT), '--hostname', env.HOST],
 ];
-const children = commands.map((args) =>
-  spawn(process.execPath, args, { stdio: 'inherit', env: process.env }),
+const children = commands.map((args, index) =>
+  spawn(process.execPath, args, {
+    stdio: 'inherit',
+    env: process.env,
+    cwd: index === 2 ? resolve('apps/web') : process.cwd(),
+  }),
 );
 let stopping = false;
 function stop(code: number) {
