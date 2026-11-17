@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>مصدر مدار التجريبي</title><link>https://example.test</link><description>بيانات افتراضية لا تمثل أخبارًا حقيقية</description>
+<item><guid>demo-airport-line</guid><title>مثال تجريبي: تحديد موعد تشغيل خط المطار</title><link>https://example.test/news/airport-line</link><description>مادة افتراضية لاختبار حفظ المصدر ورصد التعديلات. الموعد الوارد في النموذج ليس خبرًا حقيقيًا.</description><pubDate>Tue, 17 Nov 2026 09:00:00 GMT</pubDate></item>
+<item><guid>demo-skills</guid><title>مثال تجريبي: فتح التسجيل في برنامج المهارات</title><link>https://example.test/news/skills</link><description>هذه المادة مكتوبة لاختبار مسار الجمع فقط. لا توجد خدمة تسجيل مرتبطة بها.</description><pubDate>Tue, 17 Nov 2026 10:00:00 GMT</pubDate></item>
+</channel></rss>

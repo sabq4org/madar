@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Sample</title>
+  <item><guid>article-1</guid><title>العنوان الأول</title><link>https://news.example.test/story/1?utm_source=rss#top</link><pubDate>Mon, 17 Nov 2026 08:00:00 GMT</pubDate><description><![CDATA[<p>خبر <b>مهم</b> &amp; عاجل</p>]]></description></item>
+  <item><guid>unsafe</guid><title>رابط غير آمن</title><link>javascript:alert(1)</link></item>
+</channel></rss>

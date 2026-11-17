@@ -1,0 +1,9 @@
+services:
+  migrate:
+    image: madar:ci
+  api:
+    image: madar:ci
+  worker:
+    image: madar:ci
+  web:
+    image: madar:ci

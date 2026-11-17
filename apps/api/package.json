@@ -1,0 +1,20 @@
+{
+  "name": "@madar/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@madar/contracts": "workspace:*",
+    "@madar/db": "workspace:*",
+    "fastify": "5.12.8",
+    "@fastify/helmet": "13.2.0",
+    "@fastify/rate-limit": "11.2.2",
+    "pg-boss": "12.38.2",
+    "zod": "4.6.7"
+  }
+}

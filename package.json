@@ -1,0 +1,45 @@
+{
+  "name": "madar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.12.0 <27",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "env:init": "node scripts/env-init.mjs",
+    "dev": "node --env-file-if-exists=.env --import tsx scripts/dev.ts",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts",
+    "db:seed": "node --env-file-if-exists=.env --import tsx scripts/seed.ts",
+    "demo:collect": "node --env-file-if-exists=.env --import tsx scripts/collect-demo.ts",
+    "db:local:start": "node scripts/local-postgres.mjs start",
+    "db:local:stop": "node scripts/local-postgres.mjs stop",
+    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.tests.json --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run --exclude 'tests/integration/**'",
+    "test:integration": "node --env-file-if-exists=.env --import tsx scripts/test-integration.ts",
+    "build": "node --import tsx scripts/build.ts && pnpm --filter @madar/web build && node scripts/prepare-web.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@types/node": "26.6.6",
+    "@types/pg": "8.23.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0",
+    "esbuild": "0.28.2"
+  },
+  "dependencies": {
+    "@madar/db": "workspace:*",
+    "@madar/contracts": "workspace:*",
+    "pg-boss": "12.38.2",
+    "pg": "8.23.1",
+    "fast-xml-parser": "5.12.1",
+    "ipaddr.js": "2.5.0",
+    "zod": "4.6.7"
+  }
+}

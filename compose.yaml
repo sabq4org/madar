@@ -1,0 +1,57 @@
+name: madar
+services:
+  postgres:
+    image: postgres:17.10-alpine
+    environment:
+      POSTGRES_USER: madar
+      POSTGRES_PASSWORD: madar_local_only
+      POSTGRES_DB: madar
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - madar_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U madar -d madar"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  migrate:
+    profiles: ["app"]
+    build: .
+    command: ["pnpm", "db:migrate"]
+    environment:
+      DATABASE_URL: postgres://madar:madar_local_only@postgres:5432/madar
+    depends_on:
+      postgres: { condition: service_healthy }
+  api:
+    profiles: ["app"]
+    build: .
+    command: ["node", "apps/api/dist/index.js"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://madar:madar_local_only@postgres:5432/madar
+      HOST: 0.0.0.0
+    ports: ["127.0.0.1:4100:4100"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+  worker:
+    profiles: ["app"]
+    build: .
+    command: ["node", "apps/worker/dist/index.js"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://madar:madar_local_only@postgres:5432/madar
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+  web:
+    profiles: ["app"]
+    build: .
+    command: ["node", "apps/web/.next/standalone/apps/web/server.js"]
+    environment:
+      API_INTERNAL_URL: http://api:4100
+      HOSTNAME: 0.0.0.0
+      PORT: 3100
+    ports: ["127.0.0.1:3100:3100"]
+    depends_on: [api]
+volumes:
+  madar_pg:

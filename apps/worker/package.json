@@ -1,0 +1,19 @@
+{
+  "name": "@madar/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@madar/contracts": "workspace:*",
+    "@madar/db": "workspace:*",
+    "@madar/ingestion": "workspace:*",
+    "pg-boss": "12.38.2",
+    "pino": "10.4.0",
+    "zod": "4.6.7"
+  }
+}

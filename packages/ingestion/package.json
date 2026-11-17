@@ -1,0 +1,23 @@
+{
+  "name": "@madar/ingestion",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@madar/contracts": "workspace:*",
+    "fast-xml-parser": "5.12.1",
+    "ipaddr.js": "2.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}
