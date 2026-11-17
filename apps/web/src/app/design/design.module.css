@@ -25,6 +25,8 @@
   color: var(--ink);
   background: var(--bg);
   font-family: var(--font-arabic), "IBM Plex Arabic", Tahoma, sans-serif;
+  --font-display:
+    var(--font-handicrafts), var(--font-arabic), "IBM Plex Arabic", Tahoma, sans-serif;
   font-size: 15px;
   line-height: 1.75;
   font-variant-numeric: tabular-nums;
@@ -1323,5 +1325,47 @@
   .page * {
     transition: none;
     scroll-behavior: auto;
+  }
+}
+
+/* خط العناوين: «عام الحرف اليدوية». الشعار بمدّات، والعناوين بلا تطويل. */
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.since h2,
+.dayHead h1,
+.lead h2,
+.secHead h3,
+.file h4,
+.card h3,
+.storyHero h1,
+.panel h2,
+.diff h2,
+.sinceTitle,
+.followQ {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.card h3 small,
+.diff h2 small {
+  font-family: var(--font-arabic), "IBM Plex Arabic", Tahoma, sans-serif;
+}
+@media (max-width: 560px) {
+  .wordmark {
+    font-size: 25px;
   }
 }
