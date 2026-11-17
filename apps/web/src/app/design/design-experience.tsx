@@ -14,6 +14,7 @@ import {
   relayCount,
   type Story,
   stories,
+  type Watch,
 } from './data';
 import styles from './design.module.css';
 
@@ -172,6 +173,21 @@ function ClaimRow({ claim }: { claim: Claim }) {
   );
 }
 
+function developments(count: number) {
+  if (count === 1) return 'تطورًا واحدًا';
+  if (count === 2) return 'تطورين';
+  return `${count} تطورات`;
+}
+
+const fallbackWatch: Watch = {
+  label: 'أي تعديل على معلومة في الملف',
+  status: 'يشمل تغيّر الأرقام والمواعيد المعلنة',
+};
+
+function watchOptionsFor(story: Story): Watch[] {
+  return story.watches.length ? story.watches : [fallbackWatch];
+}
+
 export default function DesignExperience() {
   const [view, setView] = useState<View>('home');
   const [storyId, setStoryId] = useState('metro');
@@ -251,7 +267,9 @@ export default function DesignExperience() {
   const rest = visible.slice(1);
 
   const watched = stories.flatMap((s) =>
-    s.watches.filter((w) => (follows[s.id] ?? []).includes(w.label)).map((w) => ({ s, w })),
+    watchOptionsFor(s)
+      .filter((w) => (follows[s.id] ?? []).includes(w.label))
+      .map((w) => ({ s, w })),
   );
 
   const toggleSave = (id: string) => {
@@ -273,9 +291,12 @@ export default function DesignExperience() {
   };
 
   const storyFollows = follows[story.id] ?? [];
-  const watchOptions = story.watches.length
-    ? story.watches
-    : [{ label: 'أي تعديل على معلومة في الملف', status: 'يشمل تغيّر الأرقام والمواعيد المعلنة' }];
+  const watchOptions = watchOptionsFor(story);
+  const followedStories = stories.filter((s) => (follows[s.id] ?? []).length > 0);
+  const changedCount = followedStories.filter((s) => s.diff.length > 0).length;
+  const sinceSummary = followedStories.length
+    ? `ملفات تتابعها: ${followedStories.length}. تغيّر منها ${changedCount}، و${followedStories.length - changedCount} بلا جديد. نعرض ما تغيّر فقط، لا كل ما نُشر.`
+    : 'لا تتابع أي ملف بعد. افتح ملفًا واختر تطورًا يهمك، وسنعرض هنا ما تغيّر فيه فقط.';
   const currentFrequency = frequency[story.id] ?? 'فور حدوثه';
 
   return (
@@ -346,12 +367,10 @@ export default function DesignExperience() {
             <div className={styles.since}>
               <div>
                 <h2 id="since-title">منذ زيارتك الأخيرة</h2>
-                <p className={styles.sinceSub}>
-                  تغيّر 2 من ملفاتك المتابَعة، وملف واحد بلا جديد. نعرض ما تغيّر فقط، لا كل ما نُشر.
-                </p>
+                <p className={styles.sinceSub}>{sinceSummary}</p>
               </div>
               <div className={styles.sinceList}>
-                {stories.slice(0, 3).map((s) => {
+                {followedStories.map((s) => {
                   const quiet = s.diff.length === 0;
                   const first = s.diff[0];
                   return (
@@ -369,7 +388,7 @@ export default function DesignExperience() {
                       <span className={styles.sinceTitle}>{s.title}</span>
                       <span className={styles.sinceChange}>
                         {quiet || !first
-                          ? 'لا تطور منذ زيارتك. آخر تغيير كان أمس.'
+                          ? 'لا تطور منذ زيارتك.'
                           : `تغيّر: ${first.type === 'mod' ? `${first.label}: ${first.to}` : first.text}`}
                       </span>
                     </button>
@@ -435,7 +454,7 @@ export default function DesignExperience() {
                         >
                           <Icon name="bell" />
                           {(follows[lead.id] ?? []).length
-                            ? `تتابع ${(follows[lead.id] ?? []).length} تطورات`
+                            ? `تتابع ${developments((follows[lead.id] ?? []).length)}`
                             : 'تابع تطورًا'}
                         </button>
                         <button
@@ -599,7 +618,7 @@ export default function DesignExperience() {
                   >
                     <Icon name="bell" />
                     {storyFollows.length
-                      ? `تتابع ${storyFollows.length} تطورات`
+                      ? `تتابع ${developments(storyFollows.length)}`
                       : 'تابع تطورًا محددًا'}
                   </button>
                   <button
@@ -805,7 +824,7 @@ export default function DesignExperience() {
                   </button>
                   {storyFollows.length > 0 && (
                     <p className={styles.followDone}>
-                      تتابع {storyFollows.length} تطورات في هذا الملف · {currentFrequency}
+                      تتابع {developments(storyFollows.length)} في هذا الملف · {currentFrequency}
                     </p>
                   )}
                   <p className={styles.fine}>
@@ -834,7 +853,7 @@ export default function DesignExperience() {
             <div className={styles.followGrid}>
               {stories.flatMap((s) =>
                 (follows[s.id] ?? []).map((label) => {
-                  const w = s.watches.find((x) => x.label === label);
+                  const w = watchOptionsFor(s).find((x) => x.label === label);
                   return (
                     <div className={styles.followCard} key={`${s.id}-${label}`}>
                       <div className={styles.meta}>
