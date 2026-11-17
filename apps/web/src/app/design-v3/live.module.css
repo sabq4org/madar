@@ -1,0 +1,706 @@
+/* مدار v3 — الملف الحي: بطاقة حالة، مسار، ميزان تغيّر، سجل مشهد، ورصد صمت.
+   يعتمد رموز التصميم من design.module.css (نفس الخطوط والألوان والحواف). */
+
+.hero {
+  background: var(--band);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 24px;
+  align-items: center;
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.3;
+}
+.heroSub {
+  font-size: 13.5px;
+  color: rgb(255 255 255 / 74%);
+  margin-top: 8px;
+  max-width: 46ch;
+}
+.heroStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.heroStats > div {
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.heroStats dd {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.heroStats dt {
+  font-size: 11.5px;
+  color: rgb(255 255 255 / 72%);
+  line-height: 1.5;
+}
+.heroActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.heroActions button {
+  border: 1px solid rgb(255 255 255 / 26%);
+  color: #fff;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.heroActions button:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+/* صفوف الترتيب */
+.rankList {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.rankRow {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  gap: 18px;
+  padding: 16px 20px;
+  align-items: start;
+}
+.rankRow + .rankRow {
+  border-top: 1px solid var(--line);
+}
+.rankRow:hover {
+  background: color-mix(in srgb, var(--sunk) 45%, var(--surface));
+}
+.wBadge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+}
+.wBadge b {
+  font-size: 17px;
+  line-height: 1.1;
+}
+.w0,
+.w1 {
+  background: var(--sunk);
+  color: var(--ink-2);
+}
+.w2 {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+.w3 {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.w4 {
+  background: var(--amber);
+  color: #fff;
+}
+.rowTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.4;
+  display: block;
+  text-align: start;
+}
+.rowTitle:hover {
+  color: var(--teal);
+}
+.oneLine {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin-top: 4px;
+  line-height: 1.6;
+}
+.rowMeta {
+  display: flex;
+  gap: 8px 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.rowActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  min-width: 132px;
+}
+.rowActions button {
+  font-size: 12.5px;
+  padding: 5px 10px;
+}
+.quietHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  width: 100%;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.quietHead b {
+  font-weight: 600;
+}
+.quietList {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+.quietRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  flex-wrap: wrap;
+}
+.quietRow span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* بطاقة الحالة */
+.cardTable {
+  display: flex;
+  flex-direction: column;
+}
+.fieldRow {
+  padding: 14px 0;
+}
+.fieldRow + .fieldRow {
+  border-top: 1px solid var(--line);
+}
+.fieldTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 16px;
+  align-items: start;
+}
+.fieldLabel {
+  font-size: 12.5px;
+  color: var(--muted);
+  display: block;
+}
+.fieldValue {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.unset {
+  color: var(--amber);
+  font-weight: 500;
+  border-bottom: 1px dashed var(--amber);
+}
+.fieldMeta {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+  align-items: center;
+}
+.fieldMeta a {
+  color: var(--teal);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.historyBtn {
+  color: var(--teal);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.history {
+  margin-top: 10px;
+  background: var(--sunk);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+.historyRow {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+}
+.historyRow time {
+  color: var(--muted);
+}
+.quote {
+  border-inline-start: 3px solid var(--teal);
+  background: var(--sunk);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.7;
+}
+.quote cite {
+  display: block;
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* المسار */
+.rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.railItem {
+  border-top: 3px solid var(--line);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.railDone {
+  border-top-color: var(--teal);
+}
+.railCurrent {
+  border-top-color: var(--amber);
+}
+.railOverdue {
+  border-top-color: var(--amber);
+  border-top-style: dashed;
+}
+.railLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.railDate {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.railState {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 1px 7px;
+  align-self: flex-start;
+  background: var(--sunk);
+  color: var(--ink-2);
+}
+.railDone .railState {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+.railCurrent .railState,
+.railOverdue .railState {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+/* سجل المشهد */
+.sceneGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.sceneCard {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.sceneImg {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--sunk);
+}
+.sceneImg img {
+  object-fit: cover;
+}
+.sceneBody {
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.sceneBody time {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.rights {
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px dashed var(--line);
+  margin-top: 8px;
+  padding-top: 6px;
+}
+.comparePair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* سجل التطورات */
+.devList {
+  display: flex;
+  flex-direction: column;
+}
+.devRow {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px 0;
+}
+.devRow + .devRow {
+  border-top: 1px solid var(--line);
+}
+.devTitle {
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+.devBody {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+.devMeta {
+  display: flex;
+  gap: 6px 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.autoTag {
+  background: var(--plum-soft);
+  color: var(--plum);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-weight: 600;
+}
+.heldTag {
+  border: 1px dashed var(--amber);
+  color: var(--amber);
+  border-radius: 6px;
+  padding: 1px 8px;
+}
+.genTag {
+  background: var(--teal-soft);
+  color: var(--teal);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-weight: 600;
+}
+.devActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.devActions button {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+.dismissedNote {
+  font-size: 12.5px;
+  color: var(--muted);
+  background: var(--sunk);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 10px;
+}
+.devDismissed .devTitle {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--amber);
+}
+.changeLine {
+  font-size: 13.5px;
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.changeLine del {
+  color: var(--muted);
+  text-decoration-color: var(--amber);
+}
+.changeLine ins {
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--teal);
+}
+
+/* الموجز والمقاييس واكتشف */
+.digest {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px 24px;
+  max-width: 620px;
+}
+.digestMsg {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1.45;
+}
+.digestList {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+.digestItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  font-size: 14px;
+  text-align: start;
+}
+.digestItem small {
+  display: block;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.metric {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+}
+.metricValue {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-family: var(--font-display);
+}
+.metricLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.metricHint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.65;
+}
+.discoverGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.discoverCard {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.discoverCard h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+}
+.activityBar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+.activityBar i {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+}
+.requestBox {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 12px;
+}
+.requestBox input {
+  flex: 1;
+  min-width: 220px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.requestList {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.clock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-inline-start: auto;
+}
+.clockSeg {
+  display: flex;
+  background: var(--sunk);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+.clockSeg button {
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.clockSeg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+}
+.fileHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.fileHead h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(23px, 3vw, 31px);
+  line-height: 1.35;
+}
+.correctionLog {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.correctionLog li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  color: var(--ink-2);
+}
+
+@media (max-width: 1000px) {
+  .hero,
+  .metricsGrid,
+  .discoverGrid,
+  .sceneGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .heroStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rail {
+    grid-auto-flow: row;
+  }
+  .railItem {
+    border-top: 0;
+    border-inline-start: 3px solid var(--line);
+    padding: 4px 12px 10px 0;
+  }
+  .railDone {
+    border-inline-start-color: var(--teal);
+  }
+  .railCurrent,
+  .railOverdue {
+    border-inline-start-color: var(--amber);
+  }
+}
+@media (max-width: 720px) {
+  .rankRow,
+  .devRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .wBadge {
+    flex-direction: row;
+    justify-content: center;
+    gap: 6px;
+    width: fit-content;
+  }
+  .rowActions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .comparePair,
+  .sceneGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .historyRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13.5px;
+}
+.narrowSeg {
+  max-width: 320px;
+}
+.gapTop {
+  margin-top: 14px;
+}
+.chipsRow {
+  margin-top: 8px;
+}
