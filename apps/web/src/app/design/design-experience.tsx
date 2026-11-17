@@ -2,846 +2,900 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CategoryKey,
+  type Claim,
+  categories,
+  initialFollows,
+  kindLabels,
+  LAST_VISIT,
+  originsPhrase,
+  relayCount,
+  type Story,
+  stories,
+  type Watch,
+} from './data';
 import styles from './design.module.css';
 
-type Story = {
-  id: string;
-  category: string;
-  title: string;
-  excerpt: string;
-  time: string;
-  image: string;
-  imageAlt: string;
-  before: string;
-  changed: string;
-  pending: string;
-  context: string;
-};
-type DetailTab = 'change' | 'context' | 'sources';
-type View = 'today' | 'following' | 'saved';
+type View = 'home' | 'story' | 'following';
+type Theme = 'system' | 'light' | 'dark';
+type Frequency = 'فور حدوثه' | 'ملخص يومي';
+type IconName = 'arrow' | 'bell' | 'save' | 'search' | 'moon' | 'back';
 
-const stories: Story[] = [
-  {
-    id: 'mobility',
-    category: 'المدن والتنقل',
-    title: 'كيف تعيد المدينة رسم علاقتها بالسيارة؟',
-    excerpt:
-      'مسارات جديدة للنقل العام تعيد ترتيب الأولويات بين الطريق والحي، وتطرح سؤالًا عمليًا: لمن صُممت المسافة اليومية؟',
-    time: '08:35',
-    image: '/design-assets/city.jpg',
-    imageAlt: 'مشهد حضري لطريق ومبانٍ في المدينة',
-    before: 'طُرحت فكرة ربط الأحياء بالنقل العام في هذا السيناريو الافتراضي.',
-    changed: 'أُضيف تصور للمحطات والمسارات المقترحة داخل المدينة.',
-    pending: 'مواعيد التشغيل والأسعار وتفاصيل الوصول.',
-    context:
-      'تغيّر شكل التنقل يرتبط بتصميم الشوارع، وتواتر الخدمة، وسهولة الوصول إلى المحطات. لا يقدم هذا النموذج أرقامًا أو نتائج ميدانية.',
-  },
-  {
-    id: 'energy',
-    category: 'تقنية وطاقة',
-    title: 'تخزين الطاقة يقترب من قلب الشبكة',
-    excerpt: 'تجربة افتراضية تبحث كيف يمكن للبطاريات أن توازن الطلب في ساعات الذروة.',
-    time: '08:10',
-    image: '/design-assets/energy.jpg',
-    imageAlt: 'ألواح طاقة ومشهد تقني',
-    before: 'يعرض السيناريو حاجة افتراضية لموازنة الطلب في أوقات الذروة.',
-    changed: 'أُضيف خيار تخزين الطاقة وإعادتها إلى الشبكة عند الحاجة.',
-    pending: 'السعة والتكلفة وأثر الحل على استقرار الشبكة.',
-    context:
-      'الجدوى تعتمد على تكلفة التخزين، وعمر البطاريات، ومرونة الشبكة. التفاصيل هنا جزء من سيناريو تصميمي افتراضي.',
-  },
-  {
-    id: 'culture',
-    category: 'ثقافة ووجهات',
-    title: 'وجهات ثقافية تبحث عن إيقاع المدينة',
-    excerpt:
-      'من المساحات المؤقتة إلى البرامج الموسمية، كيف يتغير معنى الزيارة حين يصبح المكان جزءًا من يوم الناس؟',
-    time: '07:50',
-    image: '/design-assets/culture.jpg',
-    imageAlt: 'صخرة الفيل في العلا مضاءة ليلًا',
-    before: 'يركز التصور على زيارة ثقافية مرتبطة بمناسبة أو موسم.',
-    changed: 'أُضيفت فكرة توزيع البرامج على مساحات أقرب إلى الحياة اليومية.',
-    pending: 'استمرارية البرامج وسهولة الوصول إليها.',
-    context:
-      'يركز الملف على سهولة الوصول وتنوع البرامج واستمراريتها، دون الإشارة إلى مشروع قائم أو جهة حقيقية.',
-  },
-  {
-    id: 'economy',
-    category: 'اقتصاد',
-    title: 'المتاجر الصغيرة تختبر طرقًا جديدة للبيع',
-    excerpt: 'أدوات رقمية أخف قد تمنح الأعمال المحلية مساحة أكبر لفهم الطلب وإدارة المخزون.',
-    time: '07:25',
-    image: '',
-    imageAlt: '',
-    before: 'تُدار الطلبات والمخزونات في السيناريو بوسائل متفرقة.',
-    changed: 'أُضيف تصور لأداة تجمع متابعة الطلب والمخزون.',
-    pending: 'سهولة الاستخدام والتكلفة وملاءمتها لحجم المتجر.',
-    context:
-      'لا يتضمن هذا النموذج بيانات سوق أو نتائج منشآت فعلية؛ إنه يوضح طريقة عرض قصة اقتصادية في مدار.',
-  },
-  {
-    id: 'technology',
-    category: 'تقنية',
-    title: 'الذكاء الاصطناعي يدخل أدوات العمل اليومية',
-    excerpt:
-      'التحول الأهم قد لا يكون في الأداة، بل في طريقة مراجعة المخرجات وتحديد المسؤولية عنها.',
-    time: '06:55',
-    image: '',
-    imageAlt: '',
-    before: 'تُستخدم أدوات رقمية افتراضية لإنجاز بعض مهام العمل.',
-    changed: 'أُضيفت خطوة للمراجعة البشرية قبل اعتماد المخرجات.',
-    pending: 'تحديد المسؤولية وحدود الاستخدام المناسبة.',
-    context: 'لا ينسب هذا السيناريو اعتمادًا أو تصريحًا إلى مؤسسة بعينها. التفاصيل توضيحية فقط.',
-  },
-  {
-    id: 'places',
-    category: 'ثقافة ووجهات',
-    title: 'المشي يفتح نافذة مختلفة على الوجهة',
-    excerpt: 'مسارات قصيرة تربط الساحات بالمقاهي والمرافق، وتعيد اكتشاف المكان على مهل.',
-    time: '06:30',
-    image: '',
-    imageAlt: '',
-    before: 'تُعرض الوجهة في السيناريو كنقاط منفصلة للزيارة.',
-    changed: 'أُضيف مسار مشي يصل بين الساحات والمرافق.',
-    pending: 'الظل وإمكانية الوصول وملاءمة المسار لمختلف الزوار.',
-    context: 'المحتوى تخيلي للتصميم، وليس تقريرًا عن مشروع منفذ أو موقع محدد.',
-  },
-];
-const categories = ['الكل', 'المدن والتنقل', 'اقتصاد', 'تقنية', 'تقنية وطاقة', 'ثقافة ووجهات'];
-const summaryStories = stories.slice(0, 3);
-const categoryColors: Record<string, string> = {
-  'المدن والتنقل': 'city',
-  'تقنية وطاقة': 'energy',
-  'ثقافة ووجهات': 'culture',
-  اقتصاد: 'economy',
-  تقنية: 'technology',
+const iconPaths: Record<IconName, string[]> = {
+  arrow: ['M15 6l-6 6 6 6'],
+  back: ['m9 6 6 6-6 6'],
+  bell: ['M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z', 'M10 20a2 2 0 0 0 4 0'],
+  save: ['M6 4h12v17l-6-4-6 4z'],
+  search: ['M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'm20 20-3.5-3.5'],
+  moon: ['M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'],
 };
 
-function Icon({
-  name,
-}: {
-  name: 'search' | 'bookmark' | 'bookmarkFill' | 'arrow' | 'close' | 'spark' | 'plus' | 'check';
-}) {
-  const common = {
-    width: 20,
-    height: 20,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 1.7,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    'aria-hidden': true as const,
-  };
-  if (name === 'search')
-    return (
-      <svg {...common}>
-        <title>رمز</title>
-        <circle cx="10.8" cy="10.8" r="6.8" />
-        <path d="m16 16 4.5 4.5" />
-      </svg>
-    );
-  if (name === 'bookmark' || name === 'bookmarkFill')
-    return (
-      <svg {...common} fill={name === 'bookmarkFill' ? 'currentColor' : 'none'}>
-        <title>رمز</title>
-        <path d="M6.5 4.5h11v16l-5.5-3.7-5.5 3.7z" />
-      </svg>
-    );
-  if (name === 'arrow')
-    return (
-      <svg {...common}>
-        <title>رمز</title>
-        <path d="M19 12H5m0 0 6 6m-6-6 6-6" />
-      </svg>
-    );
-  if (name === 'close')
-    return (
-      <svg {...common}>
-        <title>رمز</title>
-        <path d="m18 6-12 12M6 6l12 12" />
-      </svg>
-    );
-  if (name === 'spark')
-    return (
-      <svg {...common}>
-        <title>رمز</title>
-        <path d="m12 3 1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-2.5L12 3Z" />
-        <path d="m19 2 .7 2.3L22 5l-2.3.7L19 8l-.7-2.3L16 5l2.3-.7L19 2Z" />
-      </svg>
-    );
-  if (name === 'check')
-    return (
-      <svg {...common}>
-        <title>رمز</title>
-        <path d="m5 12 4 4L19 6" />
-      </svg>
-    );
+function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
   return (
-    <svg {...common}>
-      <title>رمز</title>
-      <path d="M12 5v14M5 12h14" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {iconPaths[name].map((d) => (
+        <path key={d} d={d} />
+      ))}
     </svg>
   );
 }
 
-export default function DesignExperience() {
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('الكل');
-  const [view, setView] = useState<View>('today');
-  const [followed, setFollowed] = useState<string[]>(['المدن والتنقل']);
-  const [saved, setSaved] = useState<string[]>([]);
-  const [active, setActive] = useState<Story | null>(null);
-  const [detailTab, setDetailTab] = useState<DetailTab>('change');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [summaryOpen, setSummaryOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const summaryRef = useRef<HTMLDialogElement>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
-  const summaryOpenerRef = useRef<HTMLElement | null>(null);
-  const detailWasOpenRef = useRef(false);
-  const summaryWasOpenRef = useRef(false);
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  const filtered = useMemo(
-    () =>
-      stories.filter((story) => {
-        const matchesQuery = `${story.title} ${story.excerpt} ${story.category}`
-          .toLowerCase()
-          .includes(query.trim().toLowerCase());
-        const matchesCategory = category === 'الكل' || story.category === category;
-        const matchesView =
-          view === 'today' ||
-          (view === 'following' && followed.includes(story.category)) ||
-          (view === 'saved' && saved.includes(story.id));
-        return matchesQuery && matchesCategory && matchesView;
-      }),
-    [category, followed, query, saved, view],
+function CategoryTag({ category }: { category: CategoryKey }) {
+  return (
+    <span className={styles.cat}>
+      <i className={styles[`tone_${categories[category].tone}`]} />
+      {categories[category].name}
+    </span>
   );
-  const feature = filtered.find((story) => story.id === 'mobility') ?? filtered[0];
-  const secondary = filtered.filter((story) => story.id !== feature?.id);
+}
+
+function Activity({ values }: { values: number[] }) {
+  const width = 160;
+  const height = 28;
+  const step = width / (values.length - 1);
+  const points = values.map((value, index) => ({
+    x: width - index * step,
+    y: height - 4 - (value / 3) * (height - 10),
+    value,
+    last: index === values.length - 1,
+  }));
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
+      <path
+        d={`M${points.map((p) => `${p.x} ${p.y}`).join(' L')}`}
+        className={styles.activityLine}
+        vectorEffect="non-scaling-stroke"
+      />
+      {points
+        .filter((p) => p.value > 0)
+        .map((p) => (
+          <circle
+            key={p.x}
+            cx={p.x}
+            cy={p.y}
+            r={2.6}
+            className={p.last ? styles.activityLast : styles.activityDot}
+          />
+        ))}
+    </svg>
+  );
+}
+
+function States({ story, large = false }: { story: Story; large?: boolean }) {
+  return (
+    <div className={`${styles.states} ${large ? styles.statesLarge : ''}`}>
+      <div>
+        <span className={styles.stateLabel}>ما كنا نعرفه</span>
+        {story.before}
+      </div>
+      <div className={styles.stateNow}>
+        <span className={styles.stateLabel}>ما تغيّر</span>
+        {story.changed}
+      </div>
+      <div className={styles.stateWait}>
+        <span className={styles.stateLabel}>ما ننتظره</span>
+        {story.pending}
+      </div>
+    </div>
+  );
+}
+
+function Provenance({ story }: { story: Story }) {
+  const relays = relayCount(story);
+  return (
+    <div className={styles.prov}>
+      <span className={styles.bars} aria-hidden="true">
+        {story.coverage.map((origin) => (
+          <span key={origin.name} className={styles.barOrigin} />
+        ))}
+        {Array.from({ length: relays }, (_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: عناصر زخرفية متطابقة
+          <span key={i} />
+        ))}
+      </span>
+      {relays + story.coverage.length} تغطيات تعود إلى {originsPhrase(story.coverage.length)}
+    </div>
+  );
+}
+
+function StoryImage({
+  story,
+  className,
+  priority = false,
+}: {
+  story: Story;
+  className?: string;
+  priority?: boolean;
+}) {
+  if (!story.image) return null;
+  return (
+    <div className={className}>
+      <Image
+        src={story.image.src}
+        alt={story.image.alt}
+        fill
+        priority={priority}
+        sizes="(max-width: 820px) 100vw, 640px"
+        className={styles.cover}
+      />
+      <span className={styles.imgTag}>صورة توضيحية</span>
+    </div>
+  );
+}
+
+function ClaimRow({ claim }: { claim: Claim }) {
+  return (
+    <li className={styles.claim}>
+      <span className={styles.claimText}>{claim.text}</span>
+      <span className={`${styles.kind} ${styles[`kind_${claim.kind}`]}`}>
+        {kindLabels[claim.kind]}
+      </span>
+      <span className={styles.claimOrigin}>
+        <span>
+          الأصل: <b>{claim.origin}</b>
+        </span>
+        <span>{claim.reach}</span>
+        <span>{claim.time}</span>
+      </span>
+    </li>
+  );
+}
+
+function developments(count: number) {
+  if (count === 1) return 'تطورًا واحدًا';
+  if (count === 2) return 'تطورين';
+  return `${count} تطورات`;
+}
+
+const fallbackWatch: Watch = {
+  label: 'أي تعديل على معلومة في الملف',
+  status: 'يشمل تغيّر الأرقام والمواعيد المعلنة',
+};
+
+function watchOptionsFor(story: Story): Watch[] {
+  return story.watches.length ? story.watches : [fallbackWatch];
+}
+
+export default function DesignExperience() {
+  const [view, setView] = useState<View>('home');
+  const [storyId, setStoryId] = useState('metro');
+  const [filter, setFilter] = useState<CategoryKey | 'all'>('all');
+  const [query, setQuery] = useState('');
+  const [saved, setSaved] = useState<string[]>([]);
+  const [follows, setFollows] = useState<Record<string, string[]>>(initialFollows);
+  const [draft, setDraft] = useState<string[]>([]);
+  const [frequency, setFrequency] = useState<Record<string, Frequency>>({ metro: 'فور حدوثه' });
+  const [theme, setTheme] = useState<Theme>('system');
+  const [toast, setToast] = useState('');
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const followRef = useRef<HTMLDivElement>(null);
+  const pendingFocus = useRef<'heading' | 'follow' | null>(null);
+
+  const story = stories.find((s) => s.id === storyId) ?? (stories[0] as Story);
+  const followCount = Object.values(follows).reduce((total, list) => total + list.length, 0);
+
+  const navigate = useCallback(
+    (next: View, id?: string, focus: 'heading' | 'follow' = 'heading') => {
+      setView(next);
+      if (id) setStoryId(id);
+      pendingFocus.current = focus;
+      const hash = next === 'story' ? `story-${id ?? ''}` : next;
+      if (window.location.hash.slice(1) !== hash) window.history.replaceState(null, '', `#${hash}`);
+    },
+    [],
+  );
 
   useEffect(() => {
-    const node = dialogRef.current;
-    if (!node) return;
-    if (dialogOpen && !node.open) node.showModal();
-    if (!dialogOpen && node.open) node.close();
-  }, [dialogOpen]);
-  useEffect(() => {
-    const node = summaryRef.current;
-    if (!node) return;
-    if (summaryOpen && !node.open) node.showModal();
-    if (!summaryOpen && node.open) node.close();
-  }, [summaryOpen]);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        searchRef.current?.focus();
-      }
-      if (event.key === 'Escape') setMobileNavOpen(false);
+    const fromHash = () => {
+      const hash = window.location.hash.slice(1);
+      if (hash.startsWith('story-') && stories.some((s) => s.id === hash.slice(6))) {
+        setView('story');
+        setStoryId(hash.slice(6));
+      } else if (hash === 'following') setView('following');
+      else setView('home');
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    fromHash();
+    window.addEventListener('hashchange', fromHash);
+    return () => window.removeEventListener('hashchange', fromHash);
   }, []);
-  useEffect(() => {
-    if (dialogOpen) detailWasOpenRef.current = true;
-    if (summaryOpen) summaryWasOpenRef.current = true;
-    if (!dialogOpen && detailWasOpenRef.current) {
-      detailWasOpenRef.current = false;
-      if (summaryOpen && openerRef.current?.isConnected) openerRef.current.focus();
-      else if (!summaryOpen) {
-        const target = summaryOpenerRef.current ?? openerRef.current;
-        if (target?.isConnected) target.focus();
-        summaryOpenerRef.current = null;
-        openerRef.current = null;
-      }
-    }
-    if (!summaryOpen && summaryWasOpenRef.current) {
-      summaryWasOpenRef.current = false;
-      if (!dialogOpen && summaryOpenerRef.current?.isConnected) summaryOpenerRef.current.focus();
-      if (!dialogOpen) summaryOpenerRef.current = null;
-    }
-  }, [dialogOpen, summaryOpen]);
 
-  function openStory(story: Story, opener: HTMLElement) {
-    openerRef.current = opener;
-    setActive(story);
-    setDetailTab('change');
-    setDialogOpen(true);
-  }
-  function toggle(list: string[], setList: (next: string[]) => void, item: string) {
-    setList(list.includes(item) ? list.filter((value) => value !== item) : [...list, item]);
-  }
-  function openSummary(opener: HTMLElement) {
-    summaryOpenerRef.current = opener;
-    setSummaryOpen(true);
-  }
-  const navLabel = view === 'today' ? 'اليوم' : view === 'following' ? 'أتابع' : 'محفوظاتي';
-  const categoryClass = (value: string) => styles[categoryColors[value] ?? 'city'];
+  useEffect(() => {
+    setDraft(follows[storyId] ?? []);
+  }, [storyId, follows]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: نعيد التركيز عند تغير العرض أو الملف
+  useEffect(() => {
+    const target = pendingFocus.current;
+    pendingFocus.current = null;
+    if (!target) return;
+    if (target === 'follow' && followRef.current) {
+      followRef.current.scrollIntoView({ block: 'start' });
+      followRef.current.querySelector('input')?.focus({ preventScroll: true });
+    } else {
+      window.scrollTo(0, 0);
+      headingRef.current?.focus({ preventScroll: true });
+    }
+  }, [view, storyId]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(''), 2600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const visible = useMemo(() => {
+    const q = query.trim();
+    return stories.filter(
+      (s) =>
+        (filter === 'all' || s.category === filter) &&
+        (!q || `${s.title} ${s.excerpt} ${s.changed}`.includes(q)),
+    );
+  }, [filter, query]);
+  const lead = visible[0];
+  const rest = visible.slice(1);
+
+  const watched = stories.flatMap((s) =>
+    watchOptionsFor(s)
+      .filter((w) => (follows[s.id] ?? []).includes(w.label))
+      .map((w) => ({ s, w })),
+  );
+
+  const toggleSave = (id: string) => {
+    const isSaved = saved.includes(id);
+    setSaved(isSaved ? saved.filter((x) => x !== id) : [...saved, id]);
+    setToast(isSaved ? 'أُزيل من المحفوظات' : 'حُفظ الملف في هذه الصفحة');
+  };
+
+  const applyFollow = () => {
+    setFollows({ ...follows, [story.id]: draft });
+    setToast(draft.length ? 'فُعّلت المتابعة داخل النموذج' : 'أُلغيت متابعة هذا الملف');
+  };
+
+  const cycleTheme = () => {
+    const prefersDark =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+    setTheme(isDark ? 'light' : 'dark');
+  };
+
+  const storyFollows = follows[story.id] ?? [];
+  const watchOptions = watchOptionsFor(story);
+  const followedStories = stories.filter((s) => (follows[s.id] ?? []).length > 0);
+  const changedCount = followedStories.filter((s) => s.diff.length > 0).length;
+  const sinceSummary = followedStories.length
+    ? `ملفات تتابعها: ${followedStories.length}. تغيّر منها ${changedCount}، و${followedStories.length - changedCount} بلا جديد. نعرض ما تغيّر فقط، لا كل ما نُشر.`
+    : 'لا تتابع أي ملف بعد. افتح ملفًا واختر تطورًا يهمك، وسنعرض هنا ما تغيّر فيه فقط.';
+  const currentFrequency = frequency[story.id] ?? 'فور حدوثه';
 
   return (
-    <main className={styles.page}>
-      <div className={styles.demoBanner}>
-        <span className={styles.demoDot} /> نموذج تصميم · المحتوى والمصادر افتراضية
-      </div>
-      <header className={styles.header}>
-        <a className={styles.brand} href="/design" aria-label="مدار، الصفحة الرئيسية">
-          <span className={styles.brandMark} aria-hidden="true">
-            <i />
-            <i />
+    <div className={styles.page} data-theme={theme === 'system' ? undefined : theme}>
+      <p className={styles.notice}>
+        نموذج تصميم · <b>كل القصص والمصادر والجهات هنا افتراضية</b> · الحفظ والمتابعة داخل هذه
+        الصفحة فقط
+      </p>
+
+      <header className={styles.top}>
+        <div className={styles.topInner}>
+          <span className={styles.logo}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="2" />
+              <circle cx="18.2" cy="6.2" r="2.2" fill="currentColor" />
+            </svg>
+            مدار
           </span>
-          <span>مدار</span>
-        </a>
-        <div className={styles.searchWrap}>
-          <Icon name="search" />
-          <input
-            ref={searchRef}
-            type="search"
-            aria-label="ابحث في القصص"
-            placeholder="ابحث في القصص"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <kbd>⌘ K</kbd>
+          <nav className={styles.navTabs} aria-label="التنقل الرئيسي">
+            <button
+              type="button"
+              aria-current={view === 'home' ? 'page' : undefined}
+              onClick={() => navigate('home')}
+            >
+              اليوم
+            </button>
+            <button
+              type="button"
+              aria-current={view === 'following' ? 'page' : undefined}
+              onClick={() => navigate('following')}
+            >
+              متابعاتي
+              {followCount > 0 && <span className={styles.count}>{followCount}</span>}
+            </button>
+          </nav>
+          <label className={styles.search}>
+            <Icon name="search" size={18} />
+            <input
+              id="madar-search"
+              type="search"
+              placeholder="ابحث في ملفات القصص"
+              aria-label="ابحث في ملفات القصص"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (view !== 'home') setView('home');
+              }}
+            />
+          </label>
+          <span className={styles.lastVisit}>
+            <i />
+            آخر زيارة لك: {LAST_VISIT}
+          </span>
+          <button
+            type="button"
+            className={styles.themeBtn}
+            onClick={cycleTheme}
+            aria-label="تبديل الوضع الليلي"
+          >
+            <Icon name="moon" size={18} />
+          </button>
         </div>
-        <button
-          className={styles.menuButton}
-          type="button"
-          aria-expanded={mobileNavOpen}
-          aria-controls="main-nav"
-          onClick={() => setMobileNavOpen((open) => !open)}
-        >
-          {mobileNavOpen ? 'إغلاق' : 'القائمة'}
-        </button>
-        <button
-          className={styles.summaryTop}
-          type="button"
-          onClick={(event) => openSummary(event.currentTarget)}
-        >
-          <Icon name="spark" /> ملخص اليوم
-        </button>
       </header>
 
-      <div className={styles.layout}>
-        <nav
-          id="main-nav"
-          className={`${styles.sidebar} ${mobileNavOpen ? styles.sidebarOpen : ''}`}
-          aria-label="التنقل الرئيسي"
-        >
-          <p className={styles.navCaption}>مساحتك</p>
-          <button
-            type="button"
-            className={`${styles.navItem} ${view === 'today' ? styles.navActive : ''}`}
-            onClick={() => {
-              setView('today');
-              setMobileNavOpen(false);
-            }}
-          >
-            <span className={styles.navGlyph}>◷</span> اليوم
-          </button>
-          <button
-            type="button"
-            className={`${styles.navItem} ${view === 'following' ? styles.navActive : ''}`}
-            onClick={() => {
-              setView('following');
-              setMobileNavOpen(false);
-            }}
-          >
-            <span className={styles.navGlyph}>⌁</span> أتابع{' '}
-            <span className={styles.navCount}>{followed.length}</span>
-          </button>
-          <button
-            type="button"
-            className={`${styles.navItem} ${view === 'saved' ? styles.navActive : ''}`}
-            onClick={() => {
-              setView('saved');
-              setMobileNavOpen(false);
-            }}
-          >
-            <Icon name="bookmark" /> محفوظاتي{' '}
-            <span className={styles.navCount}>{saved.length}</span>
-          </button>
-          <div className={styles.sidebarRule} />
-          <p className={styles.navCaption}>اهتماماتك</p>
-          {['المدن والتنقل', 'تقنية وطاقة', 'ثقافة ووجهات'].map((item, index) => (
-            <button
-              type="button"
-              key={item}
-              className={styles.interest}
-              onClick={() => {
-                setCategory(category === item ? 'الكل' : item);
-                setView('today');
-                setMobileNavOpen(false);
-              }}
-            >
-              <span className={`${styles.interestDot} ${styles[`interest${index}`]}`} />
-              {item}
-              <span className={styles.interestArrow} aria-hidden="true">
-                {category === item ? '⌃' : '⌄'}
-              </span>
-            </button>
-          ))}
-          <aside className={styles.followHint}>
-            <span className={styles.hintLine} />
-            تابع ما يهمك، وستجد تطوراته هنا.
-          </aside>
-        </nav>
-
-        <section className={styles.feed} aria-label="القصص">
-          <div className={styles.feedHeading}>
-            <div>
-              <p className={styles.dateLine}>الثلاثاء، 17 نوفمبر 2026</p>
-              <h1>
-                {view === 'today'
-                  ? 'الصورة كاملة. في مدارك.'
-                  : view === 'following'
-                    ? 'ما تتابعه'
-                    : 'ما حفظته'}
-              </h1>
-            </div>
-            <span className={styles.viewLabel}>{navLabel}</span>
-          </div>
-          <fieldset className={styles.filterRow}>
-            <legend className={styles.srOnly}>تصفية حسب الاهتمام</legend>
-            {categories.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={`${styles.filterChip} ${category === item ? styles.filterSelected : ''}`}
-                aria-pressed={category === item}
-                onClick={() => setCategory(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </fieldset>
-
-          {!filtered.length ? (
-            <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}>
-                <Icon name={view === 'saved' ? 'bookmark' : 'search'} />
-              </span>
-              <h2>
-                {view === 'saved'
-                  ? 'لم تحفظ قصة بعد'
-                  : view === 'following'
-                    ? 'لا توجد قصص في اهتماماتك'
-                    : 'لم نعثر على قصص مطابقة'}
-              </h2>
-              <p>
-                {view === 'saved'
-                  ? 'استخدم علامة الحفظ على أي قصة لتعود إليها لاحقًا.'
-                  : view === 'following'
-                    ? 'تابع اهتمامًا من القائمة لتظهر قصصه هنا.'
-                    : 'جرّب كلمة بحث أخرى أو اختر اهتمامًا مختلفًا.'}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery('');
-                  setCategory('الكل');
-                  setView('today');
-                }}
-              >
-                عرض قصص اليوم
-              </button>
-            </div>
-          ) : (
-            <>
-              {feature && (
-                <article
-                  className={`${styles.feature} ${!feature.image ? styles.featureTextOnly : ''}`}
-                >
-                  {feature.image && (
+      <main className={styles.main}>
+        {view === 'home' && (
+          <section aria-labelledby="home-title">
+            <div className={styles.since}>
+              <div>
+                <h2 id="since-title">منذ زيارتك الأخيرة</h2>
+                <p className={styles.sinceSub}>{sinceSummary}</p>
+              </div>
+              <div className={styles.sinceList}>
+                {followedStories.map((s) => {
+                  const quiet = s.diff.length === 0;
+                  const first = s.diff[0];
+                  return (
                     <button
                       type="button"
-                      className={styles.featureImageButton}
-                      aria-label={`افتح تفاصيل: ${feature.title}`}
-                      onClick={(event) => openStory(feature, event.currentTarget)}
+                      key={s.id}
+                      className={`${styles.sinceItem} ${quiet ? styles.sinceQuiet : ''}`}
+                      onClick={() => navigate('story', s.id)}
                     >
-                      <Image
-                        src={feature.image}
-                        alt={feature.imageAlt}
-                        fill
-                        sizes="(max-width: 680px) 100vw, (max-width: 1199px) 70vw, 500px"
-                        loading="eager"
-                        className={styles.featureImage}
-                      />
-                      <span className={styles.imageCaption}>مشهد توضيحي</span>
+                      <span className={styles.sinceMeta}>
+                        <i className={styles[`tone_${categories[s.category].tone}`]} />
+                        {categories[s.category].name} ·{' '}
+                        {quiet ? 'لا جديد' : `آخر تحديث ${s.updatedAt}`}
+                      </span>
+                      <span className={styles.sinceTitle}>{s.title}</span>
+                      <span className={styles.sinceChange}>
+                        {quiet || !first
+                          ? 'لا تطور منذ زيارتك.'
+                          : `تغيّر: ${first.type === 'mod' ? `${first.label}: ${first.to}` : first.text}`}
+                      </span>
                     </button>
-                  )}
-                  <div className={styles.featureBody}>
-                    <div className={styles.storyKicker}>
-                      <span
-                        className={`${styles.categoryDot} ${categoryClass(feature.category)}`}
-                      />
-                      {feature.category}
-                      <span className={styles.kickerDivider} />
-                      {feature.time}
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.titleButton}
-                      onClick={(event) => openStory(feature, event.currentTarget)}
-                    >
-                      <h2>{feature.title}</h2>
-                    </button>
-                    <p className={styles.featureExcerpt}>{feature.excerpt}</p>
-                    <div className={styles.changePreview}>
-                      <span className={styles.changeMark} />
-                      <div>
-                        <strong>ما الذي تغيّر؟</strong>
-                        <p>{feature.changed}</p>
-                      </div>
-                    </div>
-                    <div className={styles.featureActions}>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={styles.homeGrid}>
+              <div className={styles.minw}>
+                <div className={styles.dayHead}>
+                  <div>
+                    <div className={styles.date}>الثلاثاء 17 نوفمبر 2026</div>
+                    <h1 id="home-title" ref={headingRef} tabIndex={-1}>
+                      ملفات اليوم
+                    </h1>
+                  </div>
+                  <fieldset className={styles.chips} aria-label="تصفية حسب الموضوع">
+                    {(['all', ...Object.keys(categories)] as (CategoryKey | 'all')[]).map((key) => (
                       <button
                         type="button"
-                        className={styles.readButton}
-                        onClick={(event) => openStory(feature, event.currentTarget)}
+                        key={key}
+                        className={styles.chip}
+                        aria-pressed={filter === key}
+                        onClick={() => setFilter(key)}
                       >
-                        اقرأ الملف <Icon name="arrow" />
+                        {key === 'all' ? 'الكل' : categories[key].name}
                       </button>
-                      <button
-                        type="button"
-                        className={styles.saveButton}
-                        aria-pressed={saved.includes(feature.id)}
-                        aria-label={saved.includes(feature.id) ? 'إزالة من المحفوظات' : 'حفظ القصة'}
-                        onClick={() => toggle(saved, setSaved, feature.id)}
-                      >
-                        <Icon name={saved.includes(feature.id) ? 'bookmarkFill' : 'bookmark'} />
-                        {saved.includes(feature.id) ? 'محفوظة' : 'احفظ'}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              )}
-              {secondary.length > 0 && (
-                <>
-                  <div className={styles.secondaryHeader}>
-                    <h2>{feature ? 'قصص أخرى اليوم' : 'قصص اليوم'}</h2>
-                    <span>{secondary.length} قصص</span>
-                  </div>
-                  <div className={styles.storyGrid}>
-                    {secondary.map((story) => (
-                      <article
-                        key={story.id}
-                        className={`${styles.storyCard} ${!story.image ? styles.textStory : ''}`}
-                      >
-                        {story.image && (
-                          <button
-                            type="button"
-                            className={styles.cardImageButton}
-                            aria-label={`افتح تفاصيل: ${story.title}`}
-                            onClick={(event) => openStory(story, event.currentTarget)}
-                          >
-                            <Image
-                              src={story.image}
-                              alt={story.imageAlt}
-                              fill
-                              sizes="(max-width: 680px) 100vw, 45vw"
-                            />
-                            <span>مشهد توضيحي</span>
-                          </button>
+                    ))}
+                  </fieldset>
+                </div>
+
+                {lead && (
+                  <article className={`${styles.lead} ${lead.image ? '' : styles.leadNoImage}`}>
+                    <StoryImage story={lead} className={styles.leadImage} priority />
+                    <div className={styles.leadBody}>
+                      <div className={styles.meta}>
+                        <CategoryTag category={lead.category} />
+                        <span className={styles.sep} />
+                        ملف مفتوح منذ {lead.openedOn}
+                        <span className={styles.sep} />
+                        {lead.updateCount} تحديثات
+                        {lead.diff.length > 0 && (
+                          <span className={styles.badgeNew}>جديد منذ زيارتك</span>
                         )}
-                        <div className={styles.cardBody}>
-                          <div className={styles.storyKicker}>
-                            <span
-                              className={`${styles.categoryDot} ${categoryClass(story.category)}`}
-                            />
-                            {story.category}
-                            <span className={styles.kickerDivider} />
-                            {story.time}
-                          </div>
-                          <button
-                            type="button"
-                            className={styles.cardTitle}
-                            onClick={(event) => openStory(story, event.currentTarget)}
-                          >
-                            <h3>{story.title}</h3>
-                          </button>
-                          <p>{story.excerpt}</p>
-                          <div className={styles.cardFooter}>
-                            <button
-                              type="button"
-                              className={styles.textAction}
-                              onClick={(event) => openStory(story, event.currentTarget)}
-                            >
-                              التفاصيل <Icon name="arrow" />
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.iconAction}
-                              aria-label={
-                                saved.includes(story.id) ? 'إزالة من المحفوظات' : 'حفظ القصة'
-                              }
-                              aria-pressed={saved.includes(story.id)}
-                              onClick={() => toggle(saved, setSaved, story.id)}
-                            >
-                              <Icon name={saved.includes(story.id) ? 'bookmarkFill' : 'bookmark'} />
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </section>
-
-        <aside className={styles.rail} aria-label="ملخص ومتابعات">
-          <section className={styles.summaryCard}>
-            <div className={styles.railTitle}>
-              <span className={styles.summaryIcon}>
-                <Icon name="spark" />
-              </span>
-              <h2>ملخص اليوم</h2>
-            </div>
-            <p>ثلاث زوايا تشرح كيف تتقاطع المدينة والطاقة والثقافة في قصص اليوم.</p>
-            <ul>
-              {summaryStories.map((story) => (
-                <li key={story.id}>
-                  <span className={`${styles.railDot} ${categoryClass(story.category)}`} />
-                  <span>{story.changed}</span>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              className={styles.summaryLink}
-              onClick={(event) => openSummary(event.currentTarget)}
-            >
-              اقرأ الملخص <Icon name="arrow" />
-            </button>
-          </section>
-          <section className={styles.followCard}>
-            <div className={styles.railTitle}>
-              <h2>اهتمامات تتابعها</h2>
-              <span className={styles.followCount}>{followed.length}</span>
-            </div>
-            {['المدن والتنقل', 'تقنية وطاقة', 'ثقافة ووجهات'].map((item, index) => (
-              <div className={styles.followRow} key={item}>
-                <span className={`${styles.interestDot} ${styles[`interest${index}`]}`} />
-                <span>{item}</span>
-                <button
-                  type="button"
-                  aria-label={followed.includes(item) ? `إلغاء متابعة ${item}` : `متابعة ${item}`}
-                  aria-pressed={followed.includes(item)}
-                  className={followed.includes(item) ? styles.followingButton : styles.followButton}
-                  onClick={() => toggle(followed, setFollowed, item)}
-                >
-                  {followed.includes(item) ? (
-                    <>
-                      <Icon name="check" />
-                      تتابع
-                    </>
-                  ) : (
-                    <>
-                      <Icon name="plus" />
-                      تابع
-                    </>
-                  )}
-                </button>
-              </div>
-            ))}
-          </section>
-          <div className={styles.railNote}>
-            <strong>مصادر توضيحية</strong>
-            <p>أسماء المصادر داخل هذا النموذج افتراضية، ولا تشير إلى ناشرين حقيقيين.</p>
-          </div>
-        </aside>
-      </div>
-
-      <dialog
-        ref={dialogRef}
-        className={styles.dialog}
-        aria-labelledby="detail-title"
-        onCancel={() => setDialogOpen(false)}
-      >
-        {active && (
-          <div className={styles.dialogInner}>
-            <div className={styles.dialogTop}>
-              <div className={styles.storyKicker}>
-                <span className={`${styles.categoryDot} ${categoryClass(active.category)}`} />
-                {active.category}
-                <span className={styles.kickerDivider} />
-                {active.time}
-              </div>
-              <button
-                type="button"
-                className={styles.closeButton}
-                aria-label="إغلاق التفاصيل"
-                onClick={() => setDialogOpen(false)}
-              >
-                <Icon name="close" />
-              </button>
-            </div>
-            <h2 id="detail-title" className={styles.dialogTitle}>
-              {active.title}
-            </h2>
-            <p className={styles.dialogExcerpt}>{active.excerpt}</p>
-            <fieldset className={styles.dialogTabs}>
-              <legend className={styles.srOnly}>تفاصيل القصة</legend>
-              {(
-                [
-                  ['change', 'ما تغيّر'],
-                  ['context', 'السياق'],
-                  ['sources', 'المصادر'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  type="button"
-                  key={id}
-                  aria-pressed={detailTab === id}
-                  className={detailTab === id ? styles.tabActive : ''}
-                  onClick={() => setDetailTab(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </fieldset>
-            <section className={styles.tabPanel}>
-              {detailTab === 'change' ? (
-                <>
-                  <h3>تسلسل الملف</h3>
-                  <div className={styles.timeline}>
-                    {[
-                      ['ما كنا نعرفه', active.before],
-                      ['ما تغيّر', active.changed],
-                      ['ما ننتظره', active.pending],
-                    ].map(([label, text], index) => (
-                      <div
-                        className={`${styles.timelineItem} ${index === 1 ? styles.timelineCurrent : ''}`}
-                        key={label}
-                      >
-                        <span className={styles.timelineNode} />
-                        <div>
-                          <strong>{label}</strong>
-                          <p>{text}</p>
-                        </div>
                       </div>
-                    ))}
-                  </div>
-                  <p className={styles.panelNote}>
-                    هذا التسلسل افتراضي لأغراض التصميم، وليس متابعة لحدث حقيقي.
-                  </p>
-                </>
-              ) : detailTab === 'context' ? (
-                <>
-                  <h3>ما الذي يحيط بالقصة؟</h3>
-                  <p>{active.context}</p>
-                  <p className={styles.panelNote}>
-                    لا تمثل هذه التفاصيل تحققًا أو تغطية لحدث حقيقي.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h3>مصادر توضيحية</h3>
-                  <ul className={styles.sourceList}>
-                    <li>
-                      <span>مصدر توضيحي أول</span>
-                      <small>إسناد افتراضي · غير مرتبط بناشر</small>
-                    </li>
-                    <li>
-                      <span>مصدر توضيحي ثانٍ</span>
-                      <small>إسناد افتراضي · غير مرتبط بناشر</small>
-                    </li>
-                  </ul>
-                  <p className={styles.panelNote}>
-                    هذه الأسماء للتوضيح فقط، ولا تمثل مصادر مستقلة أو حقيقية.
-                  </p>
-                </>
-              )}
-            </section>
-            <div className={styles.dialogActions}>
-              <button
-                type="button"
-                className={styles.saveButton}
-                aria-pressed={saved.includes(active.id)}
-                onClick={() => toggle(saved, setSaved, active.id)}
-              >
-                <Icon name={saved.includes(active.id) ? 'bookmarkFill' : 'bookmark'} />
-                {saved.includes(active.id) ? 'محفوظة' : 'احفظ القصة'}
-              </button>
-              <button
-                type="button"
-                className={styles.followButton}
-                aria-pressed={followed.includes(active.category)}
-                onClick={() => toggle(followed, setFollowed, active.category)}
-              >
-                {followed.includes(active.category) ? (
+                      <h2>{lead.title}</h2>
+                      <p className={styles.excerpt}>{lead.excerpt}</p>
+                      <States story={lead} />
+                      <Provenance story={lead} />
+                      <div className={styles.actions}>
+                        <button
+                          type="button"
+                          className={`${styles.btn} ${styles.primary}`}
+                          onClick={() => navigate('story', lead.id)}
+                        >
+                          افتح الملف <Icon name="arrow" />
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.btn} ${(follows[lead.id] ?? []).length ? styles.on : ''}`}
+                          onClick={() => navigate('story', lead.id, 'follow')}
+                        >
+                          <Icon name="bell" />
+                          {(follows[lead.id] ?? []).length
+                            ? `تتابع ${developments((follows[lead.id] ?? []).length)}`
+                            : 'تابع تطورًا'}
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.btn} ${saved.includes(lead.id) ? styles.on : ''}`}
+                          aria-pressed={saved.includes(lead.id)}
+                          onClick={() => toggleSave(lead.id)}
+                        >
+                          <Icon name="save" />
+                          {saved.includes(lead.id) ? 'محفوظ' : 'احفظ'}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                )}
+
+                {rest.length > 0 && (
                   <>
-                    <Icon name="check" />
-                    تتابع الموضوع
-                  </>
-                ) : (
-                  <>
-                    <Icon name="plus" />
-                    تابع الموضوع
+                    <div className={styles.secHead}>
+                      <h3>ملفات أخرى تتحرك</h3>
+                      <span>{rest.length} ملفات</span>
+                    </div>
+                    <div className={styles.files}>
+                      {rest.map((s) => (
+                        <button
+                          type="button"
+                          key={s.id}
+                          className={styles.file}
+                          onClick={() => navigate('story', s.id)}
+                        >
+                          <div className={styles.minw}>
+                            <div className={styles.meta}>
+                              <CategoryTag category={s.category} />
+                              <span className={styles.sep} />
+                              آخر تحديث {s.updatedAt}
+                              {s.diff.length > 0 && <span className={styles.badgeNew}>جديد</span>}
+                            </div>
+                            <h4>{s.title}</h4>
+                            <p className={styles.last}>
+                              <b>ما تغيّر:</b> {s.changed}
+                            </p>
+                          </div>
+                          <div className={styles.activity}>
+                            <Activity values={s.activity} />
+                            <span>حركة الملف آخر 7 أيام · {s.updateCount} تحديثات</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </>
                 )}
-              </button>
-            </div>
-          </div>
-        )}
-      </dialog>
+                {!visible.length && (
+                  <p className={styles.empty}>
+                    لا توجد ملفات تطابق البحث. جرّب كلمة أخرى أو اختر «الكل».
+                  </p>
+                )}
+              </div>
 
-      <dialog
-        ref={summaryRef}
-        className={`${styles.dialog} ${styles.summaryDialog}`}
-        aria-labelledby="summary-title"
-        onCancel={() => setSummaryOpen(false)}
-      >
-        <div className={styles.dialogInner}>
-          <div className={styles.dialogTop}>
-            <span className={styles.summaryIcon}>
-              <Icon name="spark" />
-            </span>
-            <button
-              type="button"
-              className={styles.closeButton}
-              aria-label="إغلاق الملخص"
-              onClick={() => setSummaryOpen(false)}
-            >
-              <Icon name="close" />
-            </button>
-          </div>
-          <h2 id="summary-title" className={styles.dialogTitle}>
-            ملخص اليوم
-          </h2>
-          <p className={styles.dialogExcerpt}>
-            في هذا النموذج، تلتقي قصص المدينة والطاقة والثقافة عند سؤال واحد: كيف تتغير تفاصيل
-            الحياة اليومية؟
-          </p>
-          <div className={styles.summaryItems}>
-            {summaryStories.map((story) => (
-              <button
-                type="button"
-                key={story.id}
-                onClick={(event) => openStory(story, event.currentTarget)}
-              >
-                <span className={`${styles.categoryDot} ${categoryClass(story.category)}`} />
-                <span>
-                  <strong>{story.category}</strong>
-                  <small>{story.changed}</small>
-                </span>
-                <Icon name="arrow" />
+              <aside className={styles.side}>
+                <div className={styles.card}>
+                  <h3>
+                    تطورات تنتظرها <small>محاكاة</small>
+                  </h3>
+                  <ul className={styles.watch}>
+                    {watched.length ? (
+                      watched.map(({ s, w }) => (
+                        <li key={`${s.id}-${w.label}`}>
+                          <span className={styles.watchQ}>{w.label}</span>
+                          <span className={styles.watchIn}>في: {s.title}</span>
+                          <span
+                            className={`${styles.status} ${w.happened ? styles.statusHit : styles.statusWait}`}
+                          >
+                            {w.status}
+                          </span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className={styles.fine}>
+                        لا تتابع تطورًا محددًا بعد. افتح أي ملف واختر ما يهمك.
+                      </li>
+                    )}
+                  </ul>
+                </div>
+                <div className={styles.card}>
+                  <h3>كيف نقرأ الملف</h3>
+                  <dl className={styles.legend}>
+                    {(
+                      [
+                        ['official', 'المعلومة صادرة عن صاحبها مباشرة، ومنسوبة إليه.'],
+                        ['independent', 'جهة نشرت المعلومة من عملها الخاص، لا نقلًا عن غيرها.'],
+                        ['relayed', 'إعادة نشر لأصل موجود. كثرة النقل لا تعني تأكيدًا.'],
+                        ['open', 'قيل ولم يُعلن أصله، أو تعارضت فيه الروايات.'],
+                      ] as const
+                    ).map(([kind, text]) => (
+                      <div key={kind}>
+                        <span className={`${styles.swatch} ${styles[`swatch_${kind}`]}`} />
+                        <span>
+                          <dt>{kindLabels[kind]}</dt>
+                          <dd className={styles.fine}>{text}</dd>
+                        </span>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+                <p className={styles.fine}>
+                  التصنيف في هذا النموذج مكتوب يدويًا للتوضيح. في المنتج يحتاج مراجعة تحريرية قبل
+                  عرضه، ولا يُستنتج من عدد المصادر.
+                </p>
+              </aside>
+            </div>
+          </section>
+        )}
+
+        {view === 'story' && (
+          <section aria-labelledby="story-title">
+            <div className={styles.crumb}>
+              <button type="button" onClick={() => navigate('home')}>
+                <Icon name="back" />
+                ملفات اليوم
               </button>
-            ))}
-          </div>
-          <p className={styles.panelNote}>القصص والمصادر افتراضية. الملخص ليس خبرًا موثقًا.</p>
-        </div>
-      </dialog>
+              <span>/</span>
+              <span>{categories[story.category].name}</span>
+            </div>
+            <div className={`${styles.storyHero} ${story.image ? '' : styles.storyHeroNoImage}`}>
+              <div className={styles.minw}>
+                <div className={styles.meta}>
+                  <CategoryTag category={story.category} />
+                  <span className={styles.sep} />
+                  آخر تحديث اليوم {story.updatedAt}
+                </div>
+                <h1 id="story-title" ref={headingRef} tabIndex={-1}>
+                  {story.title}
+                </h1>
+                <p className={styles.excerptLarge}>{story.excerpt}</p>
+                <dl className={styles.fileMeta}>
+                  <div>
+                    <dt>الملف مفتوح منذ</dt>
+                    <dd>{story.openedOn}</dd>
+                  </div>
+                  <div>
+                    <dt>تحديثات</dt>
+                    <dd>{story.updateCount}</dd>
+                  </div>
+                  <div>
+                    <dt>أصول المعلومات</dt>
+                    <dd>{story.coverage.length}</dd>
+                  </div>
+                  <div>
+                    <dt>تغطيات مرصودة</dt>
+                    <dd>{relayCount(story) + story.coverage.length}</dd>
+                  </div>
+                </dl>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.primary}`}
+                    onClick={() => {
+                      followRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      followRef.current?.querySelector('input')?.focus({ preventScroll: true });
+                    }}
+                  >
+                    <Icon name="bell" />
+                    {storyFollows.length
+                      ? `تتابع ${developments(storyFollows.length)}`
+                      : 'تابع تطورًا محددًا'}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${saved.includes(story.id) ? styles.on : ''}`}
+                    aria-pressed={saved.includes(story.id)}
+                    onClick={() => toggleSave(story.id)}
+                  >
+                    <Icon name="save" />
+                    {saved.includes(story.id) ? 'محفوظ' : 'احفظ الملف'}
+                  </button>
+                </div>
+              </div>
+              <StoryImage story={story} className={styles.storyImage} priority />
+            </div>
+
+            <div className={styles.storyGrid}>
+              <div className={styles.minw}>
+                {story.diff.length ? (
+                  <div className={styles.diff}>
+                    <h2>
+                      <Icon name="bell" /> منذ قراءتك الأخيرة <small>({LAST_VISIT})</small>
+                    </h2>
+                    <ul>
+                      {story.diff.map((d) => (
+                        <li key={d.type === 'mod' ? d.label : d.text}>
+                          <span className={`${styles.tag} ${styles[`tag_${d.type}`]}`}>
+                            {{ add: 'جديد', mod: 'تعدّل', remind: 'للتذكير' }[d.type]}
+                          </span>
+                          <span>
+                            {d.type === 'mod' ? (
+                              <>
+                                {d.label}: <del>{d.from}</del> ← {d.to}.
+                              </>
+                            ) : (
+                              d.text
+                            )}
+                            <span className={styles.when}>{d.when}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className={`${styles.diff} ${styles.diffQuiet}`}>
+                    <h2>منذ قراءتك الأخيرة</h2>
+                    <p className={styles.fine}>
+                      لا جديد في هذا الملف منذ زيارتك. هذا ما نعرفه حتى الآن.
+                    </p>
+                  </div>
+                )}
+
+                <States story={story} large />
+
+                <div className={styles.panel}>
+                  <h2>المعلومات في الملف وأصل كل منها</h2>
+                  <p className={styles.lede}>
+                    كل معلومة منسوبة إلى أول من قالها. عدد الناقلين لا يغيّر تصنيفها.
+                  </p>
+                  <ul className={styles.claims}>
+                    {story.claims.map((claim) => (
+                      <ClaimRow key={claim.text} claim={claim} />
+                    ))}
+                  </ul>
+                </div>
+
+                <div className={styles.panel}>
+                  <h2>خريطة التغطية</h2>
+                  <p className={styles.lede}>
+                    من أين جاءت المعلومة، ومن نقلها. هنا يظهر الفرق بين عشرة أخبار وعشرة نقول لخبر
+                    واحد.
+                  </p>
+                  <dl className={styles.covSum}>
+                    <div>
+                      <dd>{story.coverage.length}</dd>
+                      <dt>أصل للمعلومات</dt>
+                    </div>
+                    <div>
+                      <dd>{relayCount(story)}</dd>
+                      <dt>تغطية تنقل عن أصل</dt>
+                    </div>
+                    <div>
+                      <dd>{story.coverage.filter((c) => c.independent).length}</dd>
+                      <dt>عمل مستقل</dt>
+                    </div>
+                  </dl>
+                  <div className={styles.cov}>
+                    {story.coverage.map((origin) => {
+                      const outlets = origin.outlets.length
+                        ? origin.outlets
+                        : [{ name: 'لا نقل حتى الآن', relay: false }];
+                      return (
+                        <div className={styles.covRow} key={origin.name}>
+                          <div
+                            className={`${styles.covOrigin} ${origin.independent ? styles.covIndependent : ''}`}
+                          >
+                            <div className={styles.covName}>{origin.name}</div>
+                            <div className={styles.covDetail}>{origin.detail}</div>
+                          </div>
+                          <ul
+                            className={`${styles.covOut} ${outlets.length === 1 ? styles.covSingle : ''}`}
+                          >
+                            {outlets.map((outlet) => (
+                              <li
+                                key={outlet.name}
+                                className={`${styles.outlet} ${origin.independent ? styles.outletOwn : ''}`}
+                              >
+                                {outlet.name}
+                                <span>
+                                  {outlet.relay ? 'نقل' : origin.independent ? 'مصدر ذاتي' : '—'}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className={styles.panel}>
+                  <h2>تسلسل الملف</h2>
+                  <p className={styles.lede}>
+                    كل تحديث بوقته، بما فيه تعديل المصادر لعناوينها بعد النشر.
+                  </p>
+                  <ol className={styles.timeline}>
+                    {story.timeline.map((entry) =>
+                      'day' in entry ? (
+                        <li key={`d-${entry.day}`} className={styles.dayRow}>
+                          <span>{entry.day}</span>
+                        </li>
+                      ) : (
+                        <li
+                          key={`${entry.time}-${entry.text}`}
+                          className={
+                            entry.isNew ? styles.tlNew : entry.revision ? styles.tlRevision : ''
+                          }
+                        >
+                          <div className={styles.when}>{entry.time}</div>
+                          <div>{entry.text}</div>
+                          {entry.revision && (
+                            <div className={styles.revision}>
+                              <del>{entry.revision.from}</del> ← {entry.revision.to}
+                            </div>
+                          )}
+                        </li>
+                      ),
+                    )}
+                  </ol>
+                </div>
+              </div>
+
+              <aside className={styles.minw}>
+                <div className={`${styles.panel} ${styles.follow}`} ref={followRef}>
+                  <h2>تابع تطورًا محددًا</h2>
+                  <p className={styles.fine}>
+                    اختر ما يهمك في هذا الملف فقط. لن نعرض لك كل خبر جديد عنه.
+                  </p>
+                  <div className={styles.opts}>
+                    {watchOptions.map((w, i) => {
+                      const id = `watch-${story.id}-${i}`;
+                      return (
+                        <label key={w.label} className={styles.opt} htmlFor={id}>
+                          <input
+                            type="checkbox"
+                            id={id}
+                            checked={draft.includes(w.label)}
+                            onChange={(e) =>
+                              setDraft(
+                                e.target.checked
+                                  ? [...draft, w.label]
+                                  : draft.filter((x) => x !== w.label),
+                              )
+                            }
+                          />
+                          <span>
+                            {w.label}
+                            <small>{w.status}</small>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <fieldset className={styles.seg} aria-label="متى نخبرك">
+                    {(['فور حدوثه', 'ملخص يومي'] as Frequency[]).map((option) => (
+                      <button
+                        type="button"
+                        key={option}
+                        aria-pressed={currentFrequency === option}
+                        onClick={() => setFrequency({ ...frequency, [story.id]: option })}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </fieldset>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.primary} ${styles.block}`}
+                    onClick={applyFollow}
+                  >
+                    <Icon name="bell" />
+                    {storyFollows.length ? 'حدّث المتابعة' : 'فعّل المتابعة'}
+                  </button>
+                  {storyFollows.length > 0 && (
+                    <p className={styles.followDone}>
+                      تتابع {developments(storyFollows.length)} في هذا الملف · {currentFrequency}
+                    </p>
+                  )}
+                  <p className={styles.fine}>
+                    في هذا النموذج تُحفظ اختياراتك داخل الصفحة فقط، ولا تصل إشعارات.
+                  </p>
+                </div>
+              </aside>
+            </div>
+          </section>
+        )}
+
+        {view === 'following' && (
+          <section aria-labelledby="following-title">
+            <div className={styles.dayHead}>
+              <div>
+                <div className={styles.date}>ما تختاره أنت، لا ما نقترحه</div>
+                <h1 id="following-title" ref={headingRef} tabIndex={-1}>
+                  متابعاتي
+                </h1>
+              </div>
+            </div>
+            <p className={`${styles.fine} ${styles.measure}`}>
+              تتابع تطورًا محددًا داخل الملف، مثل «موعد التشغيل»، بدل متابعة القصة كلها. عندما يحدث
+              التطور نعرضه هنا وفي «منذ زيارتك الأخيرة». لا تصل إشعارات حقيقية من هذا النموذج.
+            </p>
+            <div className={styles.followGrid}>
+              {stories.flatMap((s) =>
+                (follows[s.id] ?? []).map((label) => {
+                  const w = watchOptionsFor(s).find((x) => x.label === label);
+                  return (
+                    <div className={styles.followCard} key={`${s.id}-${label}`}>
+                      <div className={styles.meta}>
+                        <CategoryTag category={s.category} />
+                      </div>
+                      <div className={styles.followQ}>{label}</div>
+                      <div className={styles.followIn}>في ملف: {s.title}</div>
+                      <div className={styles.followRow}>
+                        <span
+                          className={`${styles.status} ${w?.happened ? styles.statusHit : styles.statusWait}`}
+                        >
+                          {w?.status ?? 'يراقب كل تعديل'}
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.btn}
+                          onClick={() => navigate('story', s.id)}
+                        >
+                          افتح الملف <Icon name="arrow" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }),
+              )}
+              {followCount === 0 && (
+                <p className={styles.empty}>لا متابعات بعد. افتح ملفًا واختر التطور الذي يهمك.</p>
+              )}
+            </div>
+          </section>
+        )}
+      </main>
+
       <footer className={styles.footer}>
-        <a href="/">مدار</a>
-        <span>نموذج تفاعلي تجريبي · لا يتصل بخدمة الأخبار</span>
-        <span>نسخة تصميم للمراجعة</span>
+        <div className={styles.footerInner}>
+          <span>مدار · نموذج تصميم v2 للمراجعة</span>
+          <span>لا يتصل بخدمة الأخبار · الصور توضيحية ومرخصة، والاعتمادات في CREDITS.md</span>
+        </div>
       </footer>
-    </main>
+      <div className={styles.toast} role="status">
+        {toast}
+      </div>
+    </div>
   );
 }
